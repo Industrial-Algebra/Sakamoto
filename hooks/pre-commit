@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running pre-commit checks..."
+
+echo "  cargo fmt --check"
+cargo fmt --all --check 2>&1 || {
+    echo "ERROR: cargo fmt failed. Run 'cargo fmt --all' to fix."
+    exit 1
+}
+
+echo "  cargo clippy"
+cargo clippy --workspace --all-targets -- -D warnings 2>&1 || {
+    echo "ERROR: cargo clippy found warnings."
+    exit 1
+}
+
+echo "  cargo test"
+cargo test --workspace 2>&1 || {
+    echo "ERROR: tests failed."
+    exit 1
+}
+
+echo "All pre-commit checks passed."

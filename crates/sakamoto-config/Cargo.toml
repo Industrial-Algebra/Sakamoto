@@ -1,0 +1,13 @@
+[package]
+name = "sakamoto-config"
+description = "Configuration parsing for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sakamoto-types = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }

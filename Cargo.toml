@@ -1,6 +1,51 @@
-[package]
-name = "Sakamoto"
+[workspace]
+members = [
+    "crates/sakamoto-types",
+    "crates/sakamoto-core",
+    "crates/sakamoto-config",
+    "crates/sakamoto-llm",
+    "crates/sakamoto-tools",
+    "crates/sakamoto-context",
+    "crates/sakamoto-executor",
+    "crates/sakamoto-cli",
+    # "crates/sakamoto-gui",  # Leptos + Mingot, enabled when Phase 7 lands
+]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/Industrial-Algebra/Sakamoto"
 
-[dependencies]
+[workspace.dependencies]
+# Async
+tokio = { version = "1", features = ["full"] }
+rayon = "1"
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Internal crates
+sakamoto-types = { path = "crates/sakamoto-types" }
+sakamoto-core = { path = "crates/sakamoto-core" }
+sakamoto-config = { path = "crates/sakamoto-config" }
+sakamoto-llm = { path = "crates/sakamoto-llm" }
+sakamoto-tools = { path = "crates/sakamoto-tools" }
+sakamoto-context = { path = "crates/sakamoto-context" }
+sakamoto-executor = { path = "crates/sakamoto-executor" }

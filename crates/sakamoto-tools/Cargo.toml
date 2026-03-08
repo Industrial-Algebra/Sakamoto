@@ -1,0 +1,17 @@
+[package]
+name = "sakamoto-tools"
+description = "Built-in tools and MCP client/server integration for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sakamoto-types = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+pmcp = { version = "1.10", features = ["streamable-http"] }

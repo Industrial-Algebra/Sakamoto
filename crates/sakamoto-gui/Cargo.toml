@@ -1,0 +1,10 @@
+[package]
+name = "sakamoto-gui"
+description = "Leptos + Mingot node-graph pipeline composer for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sakamoto-types = { workspace = true }

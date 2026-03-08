@@ -1,0 +1,17 @@
+[package]
+name = "sakamoto-core"
+description = "Pipeline engine, DAG runner, and stage orchestration for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sakamoto-types = { workspace = true }
+tokio = { workspace = true }
+rayon = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

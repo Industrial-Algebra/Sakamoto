@@ -1,0 +1,25 @@
+[package]
+name = "sakamoto-cli"
+description = "CLI and TUI interface for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "sakamoto"
+path = "src/main.rs"
+
+[dependencies]
+sakamoto-types = { workspace = true }
+sakamoto-core = { workspace = true }
+sakamoto-config = { workspace = true }
+sakamoto-llm = { workspace = true }
+sakamoto-tools = { workspace = true }
+sakamoto-context = { workspace = true }
+sakamoto-executor = { workspace = true }
+tokio = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }

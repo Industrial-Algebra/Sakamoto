@@ -1,0 +1,14 @@
+[package]
+name = "sakamoto-executor"
+description = "Pluggable execution environments for Sakamoto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sakamoto-types = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

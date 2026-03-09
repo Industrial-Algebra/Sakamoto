@@ -1910,6 +1910,7 @@ version = "0.1.0"
 dependencies = [
  "sakamoto-types",
  "serde",
+ "serde_json",
  "thiserror",
  "toml 0.8.23",
 ]

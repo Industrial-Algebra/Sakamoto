@@ -179,6 +179,22 @@ pub struct StageConfig {
     pub command: Option<String>,
 }
 
+impl Default for StageConfig {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            kind: StageKind::Code,
+            llm_backend: None,
+            toolset: None,
+            interaction: InteractionPolicy::default(),
+            max_iterations: default_max_iterations(),
+            max_retries: default_max_retries(),
+            timeout_secs: None,
+            command: None,
+        }
+    }
+}
+
 fn default_max_iterations() -> usize {
     20
 }

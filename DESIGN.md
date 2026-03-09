@@ -191,6 +191,57 @@ The Nix executor follows the pattern established in the
 Nix flake, builds a layered OCI image, and runs the agent inside it with bind-mounted
 volumes and security hardening.
 
+**Container architecture**: The ReAct loop and LLM calls live in `sakamoto-core` on the
+host. Containers are execution sandboxes for tool calls (shell commands, linters, tests),
+not autonomous agents. The orchestrator drives the loop, sends tool invocations into the
+container, and gets results back. This avoids requiring authentication inside containers
+for the default (proxied) case.
+
+## LLM Routing
+
+LLM calls from containerized stages support three routing modes, determined by the
+`LlmConfig` for that stage:
+
+| Mode       | Auth in container? | Config signal               | Use case                     |
+|------------|--------------------|-----------------------------|------------------------------|
+| **Proxied**| No                 | No `api_key_env`            | Claude Max, session-based auth|
+| **Direct** | API key injected   | `api_key_env` is set        | API billing, CI/production   |
+| **Local**  | No                 | `base_url` points to host   | Ollama, llama.cpp            |
+
+**Proxied mode** (default): The orchestrator exposes a local Unix socket or TCP listener.
+The container's LLM calls route through this proxy, which forwards them using the host's
+authenticated session (e.g., Claude Max). No credentials enter the container.
+
+**Direct mode**: The executor injects the API key (from the named env var) into the
+container environment. The container calls the LLM API directly. Used when per-token API
+billing is acceptable or in CI where a service account key is available.
+
+**Local mode**: The container hits a host-exposed inference endpoint (e.g., Ollama at
+`host.containers:11434`). No authentication required.
+
+```toml
+# Proxied — orchestrator handles auth (Claude Max)
+[llm.claude-max]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+# no api_key_env → proxied through orchestrator
+
+# Direct — API key injected into container
+[llm.claude-api]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+api_key_env = "ANTHROPIC_API_KEY"
+
+# Local — no auth, host-exposed Ollama
+[llm.local-qwen]
+provider = "ollama"
+model = "qwen2.5-coder:32b"
+base_url = "http://host.containers:11434/v1"
+```
+
+This design ensures that subscription-based auth (Claude Max) works seamlessly with
+containerized execution without requiring interactive login inside containers.
+
 ## Shift-Left Validation
 
 Following Stripe's approach, validation shifts feedback as early as possible:

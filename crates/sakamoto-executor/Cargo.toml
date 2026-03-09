@@ -8,7 +8,13 @@ repository.workspace = true
 
 [dependencies]
 sakamoto-types = { workspace = true }
+sakamoto-core = { workspace = true }
+sakamoto-llm = { workspace = true }
+sakamoto-tools = { workspace = true }
+sakamoto-context = { workspace = true }
+sakamoto-config = { workspace = true }
 tokio = { workspace = true }
 async-trait = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

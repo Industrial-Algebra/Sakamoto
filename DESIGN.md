@@ -145,23 +145,98 @@ The coding stage uses a ReAct-style tool-use loop:
 Tool calls respect the stage's interaction policy — in `Collaborate` mode, the human can
 approve, edit, or skip each tool call.
 
+## Tooling Philosophy
+
+Sakamoto is **language-agnostic**. It is built in Rust but is a tool *for developers*,
+not a tool for Rust developers. The tooling strategy reflects this:
+
+### Environment-First, Not Built-In-First
+
+The agent's tools are primarily whatever is available in the execution environment — the
+developer's own toolchain, not Rust reimplementations of standard utilities. `git`, `grep`,
+`find`, `make`, `npm`, `uv`, `go` — the agent uses the same tools the developer uses,
+through the shell.
+
+**Built-in tools** (implemented in Rust within `sakamoto-tools`) are minimal and exist only
+where structured I/O provides a genuine advantage over shell commands:
+
+| Tool | Why built-in |
+|------|--------------|
+| `shell` | Universal escape hatch — runs any command with timeout and output capture |
+| `fs_read` | Structured file reading with line ranges, truncation, and encoding safety — better for LLM context management than raw `cat` |
+| `fs_write` | Atomic writes with path validation — safer than `echo >` for code modification |
+
+Everything else — `git`, linters, test runners, build tools, language-specific CLIs — is
+accessed through `shell` and expected to exist in the environment.
+
+### Python 3 as a Baseline
+
+Claude models naturally reach for Python when they need ad-hoc scripting: parsing ASTs,
+bulk renames, data transformations, complex text processing. Rather than fighting this,
+every execution environment should include Python 3. This gives the agent a powerful
+general-purpose scripting language for tasks that are awkward as shell one-liners but
+trivial in a 10-line Python script.
+
+### Nix Flakes as Environment Definitions
+
+For containerized execution (`NixContainerExecutor`), Nix flakes declaratively define the
+complete tool environment. Project-type-specific templates provide the right toolchain:
+
+```toml
+[environment]
+# Use a built-in template
+type = "rust"
+
+# Or a remote flake
+# flake = "github:Industrial-Algebra/sakamoto-envs#python"
+
+# Or the project's own flake
+# flake = "./flake.nix"
+```
+
+Built-in environment templates:
+
+| Template | Includes |
+|----------|----------|
+| `rust` | cargo, clippy, rustfmt, rust-analyzer, python3, git, coreutils, ripgrep |
+| `typescript` | node, npm/bun, eslint, prettier, typescript, python3, git, coreutils |
+| `python` | uv, ruff, pytest, mypy, python3, git, coreutils |
+| `go` | go, golangci-lint, python3, git, coreutils |
+| `generic` | python3, git, coreutils, ripgrep, jq |
+
+All templates include `python3`, `git`, and standard Unix tools as a baseline.
+
+For `LocalExecutor`, no environment template is needed — the agent uses whatever is on the
+developer's PATH.
+
+### Implications
+
+This design means:
+- **No `git` tool in Rust** — the agent runs `git status`, `git diff`, etc. via shell
+- **No `lint` or `test` tools** — these are shell commands configured in `sakamoto.toml`
+  (already implemented as `CommandStage`)
+- **sakamoto-tools stays small** — shell, fs_read, fs_write, plus MCP client integration
+- **New language support = new flake template**, not new Rust code
+
 ## MCP Integration
 
-Sakamoto acts as an **MCP client**, consuming tools from external MCP servers. Tools are
-organized into named **toolsets**:
+Sakamoto acts as an **MCP client**, consuming tools from external MCP servers. MCP is the
+primary mechanism for extending the agent's capabilities beyond the shell and filesystem.
+Tools are organized into named **toolsets**:
 
 ```toml
 [toolsets.code-review]
 mcp_servers = ["github", "sourcegraph"]
-builtin = ["git", "fs"]
+builtin = ["shell", "fs_read", "fs_write"]
 
 [toolsets.infra]
 mcp_servers = ["terraform", "aws"]
 builtin = ["shell"]
 ```
 
-Each pipeline stage references a toolset by name. Built-in tools (git, filesystem, shell,
-lint, test) are always available but can be restricted per toolset.
+Each pipeline stage references a toolset by name. MCP servers provide structured,
+higher-level operations (GitHub API interactions, code search, infrastructure management)
+while built-in tools handle low-level environment access.
 
 Sakamoto can also act as an **MCP server**, exposing its pipeline execution capabilities
 to other tools and agents.
@@ -191,15 +266,75 @@ The Nix executor follows the pattern established in the
 Nix flake, builds a layered OCI image, and runs the agent inside it with bind-mounted
 volumes and security hardening.
 
+**Container architecture**: The ReAct loop and LLM calls live in `sakamoto-core` on the
+host. Containers are execution sandboxes for tool calls (shell commands, linters, tests),
+not autonomous agents. The orchestrator drives the loop, sends tool invocations into the
+container, and gets results back. This avoids requiring authentication inside containers
+for the default (proxied) case.
+
+## LLM Routing
+
+LLM calls from containerized stages support three routing modes, determined by the
+`LlmConfig` for that stage:
+
+| Mode       | Auth in container? | Config signal               | Use case                     |
+|------------|--------------------|-----------------------------|------------------------------|
+| **Proxied**| No                 | No `api_key_env`            | Claude Max, session-based auth|
+| **Direct** | API key injected   | `api_key_env` is set        | API billing, CI/production   |
+| **Local**  | No                 | `base_url` points to host   | Ollama, llama.cpp            |
+
+**Proxied mode** (default): The orchestrator exposes a local Unix socket or TCP listener.
+The container's LLM calls route through this proxy, which forwards them using the host's
+authenticated session (e.g., Claude Max). No credentials enter the container.
+
+**Direct mode**: The executor injects the API key (from the named env var) into the
+container environment. The container calls the LLM API directly. Used when per-token API
+billing is acceptable or in CI where a service account key is available.
+
+**Local mode**: The container hits a host-exposed inference endpoint (e.g., Ollama at
+`host.containers:11434`). No authentication required.
+
+```toml
+# Proxied — orchestrator handles auth (Claude Max)
+[llm.claude-max]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+# no api_key_env → proxied through orchestrator
+
+# Direct — API key injected into container
+[llm.claude-api]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+api_key_env = "ANTHROPIC_API_KEY"
+
+# Local — no auth, host-exposed Ollama
+[llm.local-qwen]
+provider = "ollama"
+model = "qwen2.5-coder:32b"
+base_url = "http://host.containers:11434/v1"
+```
+
+This design ensures that subscription-based auth (Claude Max) works seamlessly with
+containerized execution without requiring interactive login inside containers.
+
 ## Shift-Left Validation
 
 Following Stripe's approach, validation shifts feedback as early as possible:
 
-1. **Local linting** (< 5 seconds) — `cargo fmt --check`, `cargo clippy`
-2. **Local tests** — `cargo test` (subset or full)
-3. **CI** — full test suite, at most 2 rounds
+1. **Local linting** (< 5 seconds) — whatever the project's lint command is
+2. **Local tests** — project's test command (subset or full)
+3. **CI** — full test suite, at most `max_ci_rounds` rounds
 4. **Autofix** — known lint/test failures with deterministic fixes are applied
    automatically
+
+Validation commands are configured per-project in `sakamoto.toml`, not hardcoded:
+
+```toml
+[validation]
+lint_command = "npm run lint"          # or "cargo clippy", "ruff check", etc.
+fmt_command = "npm run format:check"   # or "cargo fmt --check", "black --check", etc.
+test_command = "npm test"              # or "cargo test", "pytest", etc.
+```
 
 Failed validation returns to the ReAct loop with error context. After `max_ci_rounds`,
 the pipeline emits whatever it has (partial work is still valuable as a starting point).
@@ -226,7 +361,10 @@ model = "gemma3:27b"
 
 [toolsets.default]
 mcp_servers = ["filesystem", "github"]
-builtin = ["git", "fs", "shell", "lint", "test"]
+builtin = ["shell", "fs_read", "fs_write"]
+
+[environment]
+type = "rust"  # or "typescript", "python", "go", "generic"
 
 [pipeline.default]
 stages = ["context", "plan", "code", "lint", "test", "commit", "pr"]

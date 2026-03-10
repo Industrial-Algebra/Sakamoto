@@ -8,53 +8,55 @@ Rust project and open a PR.
 ### Crate Milestones
 
 #### sakamoto-types
-- [ ] Core error types (`SakamotoError` enum)
-- [ ] Pipeline state phantom types (`Pending`, `Hydrated`, `Planned`, `Executed`,
+- [x] Core error types (`SakamotoError` enum)
+- [x] Pipeline state phantom types (`Pending`, `Hydrated`, `Planned`, `Executed`,
       `Validated`, `Emitted`)
-- [ ] `Pipeline<S>` struct with state transitions
-- [ ] `StageOutput` algebra (`Continue`, `Retry`, `Fail`, `Fork`)
-- [ ] `InteractionPolicy` enum
-- [ ] `ContextBundle` type (accumulated context for LLM calls)
-- [ ] `ContextRef` enum (file paths, GitHub issues, URLs, symbols)
-- [ ] `Message` / `ToolCall` / `ToolResult` types for LLM conversation
-- [ ] `ToolDef` type (tool name, description, JSON schema for parameters)
+- [x] `Pipeline<S>` struct with state transitions
+- [x] `StageOutput` algebra (`Continue`, `Retry`, `Fail`, `Fork`)
+- [x] `InteractionPolicy` enum
+- [x] `ContextBundle` type (accumulated context for LLM calls)
+- [x] `ContextRef` enum (file paths, GitHub issues, URLs, symbols)
+- [x] `Message` / `ToolCall` / `ToolResult` types for LLM conversation
+- [x] `ToolDef` type (tool name, description, JSON schema for parameters)
 
 #### sakamoto-config
-- [ ] `sakamoto.toml` schema definition
-- [ ] Parse project config: LLM backends, toolsets, pipeline definitions, validation
+- [x] `sakamoto.toml` schema definition
+- [x] Parse project config: LLM backends, toolsets, pipeline definitions, validation
       commands, output format
 - [ ] Parse rule files (`.sakamoto/rules/*.md`) with subdirectory scoping
-- [ ] Config validation and defaults
-- [ ] Config merging (project + user-level `~/.config/sakamoto/config.toml`)
+- [x] Config validation and defaults
+- [x] Config merging (project + user-level `~/.config/sakamoto/config.toml`)
 
 #### sakamoto-llm
-- [ ] `LlmBackend` trait (`complete`, `stream`, `model_id`, `supports_tool_use`)
-- [ ] Anthropic implementation (Messages API with tool use)
-- [ ] OpenAI-compatible implementation (Chat Completions with function calling)
-- [ ] Ollama implementation (local models)
+- [x] `LlmBackend` trait (`complete`, `model_info`)
+- [x] Anthropic implementation (Messages API with tool use)
+- [x] OpenAI-compatible implementation (Chat Completions with function calling)
+- [x] Ollama implementation (via OpenAI-compatible backend)
 - [ ] Streaming response support
 - [ ] Token counting / cost estimation
 
 #### sakamoto-tools
-- [ ] `Tool` trait and `ToolRouter` for dispatching tool calls
-- [ ] Built-in tools:
-  - [ ] `git` — status, diff, add, commit, branch, push
-  - [ ] `fs` — read, write, search (glob), grep
-  - [ ] `shell` — execute commands with timeout and output capture
-  - [ ] `lint` — run configurable lint command, parse output
-  - [ ] `test` — run configurable test command, parse output
+- [x] `Tool` trait and `ToolRouter` for dispatching tool calls
+- [x] Built-in tools:
+  - [x] `shell` — execute commands with timeout and output capture
+  - [ ] `fs_read` — structured file reading with line ranges and truncation
+  - [ ] `fs_write` — atomic file writes with path validation
 - [ ] MCP client integration via pmcp
   - [ ] Connect to MCP servers (stdio and HTTP transports)
   - [ ] Discover and register tools from MCP servers
   - [ ] Execute MCP tool calls and return results
 - [ ] Toolset management (named subsets of tools per stage)
 
+> **Design decision**: `git`, linters, test runners, and language-specific tools are
+> accessed via the `shell` tool and the execution environment (developer's PATH or Nix
+> flake), not reimplemented as Rust built-in tools. See DESIGN.md "Tooling Philosophy".
+
 #### sakamoto-context
-- [ ] `ContextParser` trait — extract `ContextRef`s from task text
-  - [ ] File path parser (absolute and relative)
-  - [ ] GitHub issue/PR URL parser
-  - [ ] Generic URL parser
-  - [ ] Symbol name parser (function/type references)
+- [x] Context reference parsers — extract `ContextRef`s from task text
+  - [x] File path parser (absolute and relative)
+  - [x] GitHub issue/PR URL parser
+  - [x] Generic URL parser
+  - [x] Symbol name parser (function/type references)
 - [ ] `ContextFetcher` trait — resolve `ContextRef` to content
   - [ ] Filesystem fetcher (read files, directory listings)
   - [ ] GitHub fetcher (via `gh` CLI — issues, PRs, comments)
@@ -63,31 +65,30 @@ Rust project and open a PR.
 - [ ] Pre-hydration: run fetchers before LLM loop starts
 
 #### sakamoto-core
-- [ ] `Stage` trait — unit of pipeline execution
-- [ ] Built-in stages:
-  - [ ] `ContextStage` — runs context pre-hydration
-  - [ ] `PlanStage` — LLM generates an execution plan
-  - [ ] `CodeStage` — ReAct loop with tool use
-  - [ ] `LintStage` — deterministic lint check
-  - [ ] `TestStage` — deterministic test execution
-  - [ ] `CommitStage` — git add + commit
-  - [ ] `PrStage` — create PR via `gh`
-- [ ] `ReactLoop` — iterative LLM + tool-use execution engine
-- [ ] DAG pipeline runner
-  - [ ] Topological sort of stages
+- [x] `Stage` trait — unit of pipeline execution
+- [x] `LlmClient` / `ToolExecutor` abstraction traits (Wasm-safe boundary)
+- [x] `ReactLoop` — iterative LLM + tool-use execution engine
+- [x] DAG pipeline runner
+  - [x] Topological sort of stages (Kahn's algorithm)
   - [ ] Parallel execution of independent stages (rayon + tokio)
-  - [ ] Retry routing on validation failure (up to `max_ci_rounds`)
+  - [x] Retry routing on validation failure (up to `max_ci_rounds`)
+- [ ] `PlanStage` — LLM generates an execution plan
 - [ ] Interaction policy enforcement per stage
 
+> **Note**: Built-in stages (ContextStage, CodeStage, CommandStage for lint/test/commit/pr)
+> live in `sakamoto-executor`, not `sakamoto-core`, to keep core Wasm-safe.
+
 #### sakamoto-executor
-- [ ] `Executor` trait (`spawn`, `status`, `output`)
-- [ ] `LocalExecutor` — run in current working directory
+- [x] `Executor` trait
+- [x] `LocalExecutor` — run in current working directory
+- [x] `LlmAdapter` / `ToolAdapter` — bridge native crates into core traits
+- [x] Built-in stages: `ContextStage`, `CodeStage`, `CommandStage` (lint/test/commit/pr)
 
 #### sakamoto-cli
-- [ ] `sakamoto run "task description"` — execute a pipeline
-- [ ] `sakamoto init` — generate `sakamoto.toml` in current project
-- [ ] `sakamoto check` — validate config and tool connectivity
-- [ ] Basic stdout logging with tracing
+- [x] `sakamoto run "task description"` — execute a pipeline
+- [x] `sakamoto init` — generate `sakamoto.toml` in current project
+- [x] `sakamoto check` — validate config and tool connectivity
+- [x] Basic stdout logging with tracing
 
 ### Infrastructure
 - [x] Cargo workspace with all crates
@@ -96,7 +97,8 @@ Rust project and open a PR.
 - [x] Dependabot
 - [x] Gitflow branching (main ← develop ← feature/*)
 - [ ] Nix flake (dev shell + build)
-- [ ] CLAUDE.md / .sakamoto/rules for agent-assisted development
+- [x] CLAUDE.md for agent-assisted development
+- [ ] `.sakamoto/rules` example rule files
 
 ### First End-to-End Test Case
 
@@ -144,9 +146,11 @@ Rust project and open a PR.
 - [ ] Pipeline serialization/sharing (export/import pipeline definitions)
 - [ ] Sakamoto as MCP server (expose pipeline execution to other tools)
 - [ ] `NixContainerExecutor` — full OS isolation via Nix flakes
-  - [ ] Templated flake generation per project type
+  - [ ] Templated flake generation per project type (rust, typescript, python, go, generic)
+  - [ ] Python 3 included in all environment templates as baseline
   - [ ] OCI image builds (following Yatima pattern)
   - [ ] Security hardening (read-only mounts, memory limits)
+  - [ ] `[environment]` config section for selecting flake templates
 - [ ] Gemma-powered natural language pipeline configuration
 
 ---

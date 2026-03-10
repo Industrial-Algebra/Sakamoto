@@ -11,6 +11,8 @@ use sakamoto_executor::local::LocalExecutor;
 use sakamoto_llm::LlmBackend;
 use sakamoto_llm::providers::anthropic::AnthropicBackend;
 use sakamoto_llm::providers::openai_compat::OpenAiCompatBackend;
+use sakamoto_tools::builtin::fs_read::FsReadTool;
+use sakamoto_tools::builtin::fs_write::FsWriteTool;
 use sakamoto_tools::builtin::shell::ShellTool;
 use sakamoto_tools::router::ToolRouter;
 use sakamoto_tools::tool::Tool;
@@ -168,7 +170,8 @@ fn build_builtin_tool(name: &str, working_dir: &Path) -> Option<Arc<dyn Tool>> {
             working_dir.to_path_buf(),
             Duration::from_secs(30),
         ))),
-        // TODO: git, fs, lint, test tools (v0.2)
+        "fs_read" => Some(Arc::new(FsReadTool::new(working_dir))),
+        "fs_write" => Some(Arc::new(FsWriteTool::new(working_dir))),
         other => {
             tracing::warn!(tool = %other, "unknown built-in tool — skipping");
             None

@@ -1,13 +1,16 @@
 //! Context pre-hydration stage.
 //!
-//! Parses the task description for references and populates
-//! the context bundle's `refs` field.
+//! Parses the task description for references, then resolves them
+//! using the context engine (filesystem fetcher, GitHub fetcher).
 
-use sakamoto_context::parser;
+use std::path::PathBuf;
+
+use sakamoto_context::engine::ContextEngine;
+use sakamoto_context::fetcher::{FilesystemFetcher, GitHubFetcher};
 use sakamoto_core::stage::{Stage, StageContext};
 use sakamoto_types::{ContextBundle, StageOutput};
 
-/// Stage that extracts context references from the task description.
+/// Stage that extracts and resolves context references from the task description.
 pub struct ContextStage;
 
 #[async_trait::async_trait]
@@ -17,8 +20,19 @@ impl Stage for ContextStage {
     }
 
     async fn execute(&self, mut context: ContextBundle, _ctx: &StageContext) -> StageOutput {
-        let refs = parser::parse_all(&context.task_description);
-        context.refs.extend(refs);
+        let working_dir = context
+            .metadata
+            .get("working_dir")
+            .and_then(|v| v.as_str())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let mut engine = ContextEngine::new();
+        engine.add_fetcher(FilesystemFetcher::new(&working_dir));
+        engine.add_fetcher(GitHubFetcher::new());
+
+        engine.hydrate(&mut context).await;
+
         StageOutput::Continue(context)
     }
 }
@@ -61,5 +75,29 @@ mod tests {
         let output = stage.execute(bundle, &ctx).await;
         let bundle = output.into_context().unwrap();
         assert!(bundle.refs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn context_stage_fetches_real_files() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::write(dir.path().join("lib.rs"), "pub mod foo;\n").unwrap();
+
+        let stage = ContextStage;
+        let mut bundle = ContextBundle::from_task("Check lib.rs");
+        bundle.metadata.insert(
+            "working_dir".into(),
+            dir.path().display().to_string().into(),
+        );
+        let ctx = empty_stage_ctx();
+
+        let output = stage.execute(bundle, &ctx).await;
+        let bundle = output.into_context().unwrap();
+
+        assert!(
+            bundle
+                .entries
+                .iter()
+                .any(|e| e.content.contains("pub mod foo"))
+        );
     }
 }

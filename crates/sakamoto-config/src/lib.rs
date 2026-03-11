@@ -34,6 +34,14 @@ pub fn merge_configs(mut project: ProjectConfig, user: &UserConfig) -> ProjectCo
         project.toolsets.clone_from(&user.toolsets);
     }
 
+    // Fill in default MCP servers from user config
+    for (name, server) in &user.mcp_servers {
+        project
+            .mcp_servers
+            .entry(name.clone())
+            .or_insert_with(|| server.clone());
+    }
+
     // Fill in default output format
     if project.output.is_none() {
         project.output.clone_from(&user.output);
@@ -72,6 +80,16 @@ model = "claude-sonnet-4-6"
 [llm.review]
 provider = "ollama"
 model = "gemma3:27b"
+
+[mcp_server.filesystem]
+transport = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+
+[mcp_server.github]
+transport = "stdio"
+command = "mcp-server-github"
+env = { GITHUB_TOKEN = "gh_xxx" }
 
 [toolsets.default]
 mcp_servers = ["filesystem", "github"]
@@ -142,6 +160,14 @@ test_command = "cargo test"
         let planning = &config.llm["planning"];
         assert_eq!(planning.provider, "anthropic");
         assert_eq!(planning.model, "claude-opus-4-6");
+
+        // MCP servers
+        assert_eq!(config.mcp_servers.len(), 2);
+        let fs_server = &config.mcp_servers["filesystem"];
+        assert_eq!(fs_server.transport, McpTransport::Stdio);
+        assert_eq!(fs_server.command.as_deref(), Some("npx"));
+        let gh_server = &config.mcp_servers["github"];
+        assert_eq!(gh_server.env["GITHUB_TOKEN"], "gh_xxx");
 
         // Toolsets
         assert_eq!(config.toolsets.len(), 2);
@@ -217,6 +243,44 @@ test_command = "cargo test"
 
         // Project output was "pr", user was "commit" — project wins
         assert_eq!(merged.output.as_ref().unwrap().default, OutputFormat::Pr);
+    }
+
+    #[test]
+    fn merge_mcp_servers_from_user() {
+        let project = parse_project_config(MINIMAL_CONFIG).unwrap();
+        let user_toml = r#"
+[llm.default]
+provider = "anthropic"
+model = "claude-sonnet-4-6"
+
+[mcp_server.filesystem]
+transport = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem"]
+"#;
+        let user = parse_user_config(user_toml).unwrap();
+        let merged = merge_configs(project, &user);
+
+        assert_eq!(merged.mcp_servers.len(), 1);
+        assert!(merged.mcp_servers.contains_key("filesystem"));
+    }
+
+    #[test]
+    fn merge_mcp_servers_project_takes_precedence() {
+        let project = parse_project_config(FULL_CONFIG).unwrap();
+        let user_toml = r#"
+[mcp_server.filesystem]
+transport = "http"
+url = "http://other:3000"
+"#;
+        let user = parse_user_config(user_toml).unwrap();
+        let merged = merge_configs(project, &user);
+
+        // Project's filesystem config should win
+        assert_eq!(
+            merged.mcp_servers["filesystem"].transport,
+            McpTransport::Stdio
+        );
     }
 
     #[test]

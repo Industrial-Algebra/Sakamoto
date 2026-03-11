@@ -23,6 +23,7 @@ Rust project and open a PR.
 - [x] `sakamoto.toml` schema definition
 - [x] Parse project config: LLM backends, toolsets, pipeline definitions, validation
       commands, output format
+- [x] MCP server configuration (`[mcp_server.*]` with stdio/http transport)
 - [ ] Parse rule files (`.sakamoto/rules/*.md`) with subdirectory scoping
 - [x] Config validation and defaults
 - [x] Config merging (project + user-level `~/.config/sakamoto/config.toml`)
@@ -39,13 +40,14 @@ Rust project and open a PR.
 - [x] `Tool` trait and `ToolRouter` for dispatching tool calls
 - [x] Built-in tools:
   - [x] `shell` — execute commands with timeout and output capture
-  - [ ] `fs_read` — structured file reading with line ranges and truncation
-  - [ ] `fs_write` — atomic file writes with path validation
-- [ ] MCP client integration via pmcp
-  - [ ] Connect to MCP servers (stdio and HTTP transports)
-  - [ ] Discover and register tools from MCP servers
-  - [ ] Execute MCP tool calls and return results
-- [ ] Toolset management (named subsets of tools per stage)
+  - [x] `fs_read` — structured file reading with line ranges and truncation
+  - [x] `fs_write` — atomic file writes with path validation
+- [x] MCP client integration via pmcp
+  - [x] Connect to MCP servers (stdio transport)
+  - [x] Discover and register tools from MCP servers
+  - [x] Execute MCP tool calls and return results
+  - [ ] HTTP transport support (streamable-http)
+- [x] Toolset management (named subsets of tools per stage)
 
 > **Design decision**: `git`, linters, test runners, and language-specific tools are
 > accessed via the `shell` tool and the execution environment (developer's PATH or Nix

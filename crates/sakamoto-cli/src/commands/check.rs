@@ -36,6 +36,27 @@ pub fn execute() -> anyhow::Result<()> {
         }
     }
 
+    // Check MCP servers
+    if config.mcp_servers.is_empty() {
+        println!("  MCP servers: none configured");
+    } else {
+        println!("  MCP servers:");
+        for (name, server) in &config.mcp_servers {
+            let transport = match server.transport {
+                sakamoto_config::McpTransport::Stdio => {
+                    format!(
+                        "stdio: {}",
+                        server.command.as_deref().unwrap_or("(missing)")
+                    )
+                }
+                sakamoto_config::McpTransport::Http => {
+                    format!("http: {}", server.url.as_deref().unwrap_or("(missing)"))
+                }
+            };
+            println!("    {name}: {transport}");
+        }
+    }
+
     // Check toolsets
     if config.toolsets.is_empty() {
         println!("  Toolsets: none configured");

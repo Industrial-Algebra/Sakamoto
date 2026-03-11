@@ -22,6 +22,10 @@ pub struct ProjectConfig {
     #[serde(default)]
     pub toolsets: HashMap<String, ToolsetConfig>,
 
+    /// MCP server definitions, keyed by name (e.g., "filesystem", "github").
+    #[serde(default, rename = "mcp_server")]
+    pub mcp_servers: HashMap<String, McpServerConfig>,
+
     /// Named pipeline definitions, keyed by name (e.g., "default").
     #[serde(default, rename = "pipeline")]
     pub pipelines: HashMap<String, PipelineConfig>,
@@ -51,6 +55,10 @@ pub struct UserConfig {
     /// Default toolsets.
     #[serde(default)]
     pub toolsets: HashMap<String, ToolsetConfig>,
+
+    /// Default MCP server definitions.
+    #[serde(default, rename = "mcp_server")]
+    pub mcp_servers: HashMap<String, McpServerConfig>,
 
     /// Default output configuration.
     #[serde(default)]
@@ -99,6 +107,41 @@ pub struct LlmConfig {
     /// Temperature (0.0 to 1.0).
     #[serde(default)]
     pub temperature: Option<f64>,
+}
+
+// ── MCP server configuration ──────────────────────────────────────
+
+/// Transport type for an MCP server connection.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum McpTransport {
+    /// Stdio transport — spawn a child process and communicate via stdin/stdout.
+    Stdio,
+    /// HTTP transport — connect to a running HTTP server.
+    Http,
+}
+
+/// Configuration for a named MCP server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServerConfig {
+    /// Transport type.
+    pub transport: McpTransport,
+
+    /// Command to run (stdio transport only).
+    #[serde(default)]
+    pub command: Option<String>,
+
+    /// Arguments to pass to the command (stdio transport only).
+    #[serde(default)]
+    pub args: Vec<String>,
+
+    /// Environment variables to set for the child process (stdio transport only).
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+
+    /// URL to connect to (HTTP transport only).
+    #[serde(default)]
+    pub url: Option<String>,
 }
 
 // ── Toolset configuration ──────────────────────────────────────────
@@ -245,6 +288,43 @@ model = "gemma3:27b"
         assert!(config.api_key_env.is_none());
         assert!(config.base_url.is_none());
         assert!(config.max_tokens.is_none());
+    }
+
+    #[test]
+    fn mcp_server_config_stdio() {
+        let toml_str = r#"
+transport = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+"#;
+        let config: McpServerConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.transport, McpTransport::Stdio);
+        assert_eq!(config.command.as_deref(), Some("npx"));
+        assert_eq!(config.args.len(), 3);
+        assert!(config.url.is_none());
+    }
+
+    #[test]
+    fn mcp_server_config_http() {
+        let toml_str = r#"
+transport = "http"
+url = "http://localhost:3000/mcp"
+"#;
+        let config: McpServerConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.transport, McpTransport::Http);
+        assert_eq!(config.url.as_deref(), Some("http://localhost:3000/mcp"));
+        assert!(config.command.is_none());
+    }
+
+    #[test]
+    fn mcp_server_config_with_env() {
+        let toml_str = r#"
+transport = "stdio"
+command = "mcp-server-github"
+env = { GITHUB_TOKEN = "gh_xxx" }
+"#;
+        let config: McpServerConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.env["GITHUB_TOKEN"], "gh_xxx");
     }
 
     #[test]

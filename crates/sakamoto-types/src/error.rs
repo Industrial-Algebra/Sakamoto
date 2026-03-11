@@ -43,6 +43,10 @@ pub enum SakamotoError {
     #[error("tool `{tool}` failed: {reason}")]
     ToolCallFailed { tool: String, reason: String },
 
+    /// An MCP server connection or protocol error.
+    #[error("MCP error ({server}): {reason}")]
+    McpError { server: String, reason: String },
+
     /// An LLM backend returned an error.
     #[error("LLM error ({backend}): {reason}")]
     LlmError { backend: String, reason: String },

@@ -177,6 +177,10 @@ pub struct StageConfig {
     /// Shell command (for Lint/Test stages).
     #[serde(default)]
     pub command: Option<String>,
+
+    /// System prompt for LLM stages (injected from rule files).
+    #[serde(default)]
+    pub system_prompt: Option<String>,
 }
 
 impl Default for StageConfig {
@@ -191,6 +195,7 @@ impl Default for StageConfig {
             max_retries: default_max_retries(),
             timeout_secs: None,
             command: None,
+            system_prompt: None,
         }
     }
 }

@@ -24,7 +24,7 @@ Rust project and open a PR.
 - [x] Parse project config: LLM backends, toolsets, pipeline definitions, validation
       commands, output format
 - [x] MCP server configuration (`[mcp_server.*]` with stdio/http transport)
-- [ ] Parse rule files (`.sakamoto/rules/*.md`) with subdirectory scoping
+- [x] Parse rule files (`.sakamoto/rules/*.md`) with subdirectory scoping
 - [x] Config validation and defaults
 - [x] Config merging (project + user-level `~/.config/sakamoto/config.toml`)
 

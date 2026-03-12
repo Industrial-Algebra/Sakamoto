@@ -7,4 +7,5 @@
 pub mod adapters;
 pub mod executor;
 pub mod local;
+pub mod rules;
 pub mod stages;

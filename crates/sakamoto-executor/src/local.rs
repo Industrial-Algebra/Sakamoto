@@ -13,6 +13,7 @@ use sakamoto_types::{ContextBundle, SakamotoError};
 
 use crate::adapters::{LlmAdapter, ToolAdapter};
 use crate::executor::Executor;
+use crate::rules;
 use crate::stages::code::CodeStage;
 use crate::stages::command::CommandStage;
 use crate::stages::context::ContextStage;
@@ -64,6 +65,29 @@ impl LocalExecutor {
     ) {
         self.tool_executors
             .insert(name, Arc::new(ToolAdapter::new(router)));
+    }
+
+    /// Load rule files and merge them into a system prompt.
+    fn load_rules_prompt(&self) -> Option<String> {
+        let patterns = self
+            .config
+            .rules
+            .as_ref()
+            .map(|r| r.paths.as_slice())
+            .unwrap_or_default();
+
+        if patterns.is_empty() {
+            return None;
+        }
+
+        let loaded = rules::load_rules(&self.working_dir, patterns);
+        if loaded.is_empty() {
+            return None;
+        }
+
+        tracing::info!(rules = loaded.len(), "loaded rule files");
+
+        rules::merge_rules_to_prompt(&loaded, None)
     }
 
     /// Build a stage implementation for the given stage name.
@@ -138,6 +162,9 @@ impl LocalExecutor {
             })?
             .clone();
 
+        // Load rule files and build system prompt
+        let rules_prompt = self.load_rules_prompt();
+
         let dag = PipelineDag::from_linear(&pipeline_config.stages)?;
 
         let mut runner = PipelineRunner::new(
@@ -151,7 +178,13 @@ impl LocalExecutor {
         // Register stages and their configs
         for stage_name in &pipeline_config.stages {
             runner.add_stage(self.build_stage(stage_name));
-            let stage_config = self.build_stage_config(stage_name, &pipeline_config);
+            let mut stage_config = self.build_stage_config(stage_name, &pipeline_config);
+
+            // Inject rules-based system prompt into LLM stages
+            if stage_config.system_prompt.is_none() {
+                stage_config.system_prompt.clone_from(&rules_prompt);
+            }
+
             runner.add_stage_config(stage_name.clone(), stage_config);
         }
 

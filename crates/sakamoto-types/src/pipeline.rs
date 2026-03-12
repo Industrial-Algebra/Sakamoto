@@ -169,13 +169,8 @@ mod tests {
         vec![StageConfig {
             name: "lint".into(),
             kind: StageKind::Lint,
-            llm_backend: None,
-            toolset: None,
-            interaction: Default::default(),
-            max_iterations: 20,
-            max_retries: 2,
-            timeout_secs: None,
             command: Some("cargo clippy".into()),
+            ..Default::default()
         }]
     }
 

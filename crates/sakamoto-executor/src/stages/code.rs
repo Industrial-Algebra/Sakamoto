@@ -59,8 +59,14 @@ impl Stage for CodeStage {
             content: MessageContent::Text(prompt),
         }];
 
-        let react = ReactLoop::new(ctx.config.max_iterations)
-            .with_system_prompt("You are a coding agent. Use the available tools to complete the task. When done, respond with a summary of changes made.");
+        let default_prompt = "You are a coding agent. Use the available tools to complete the task. When done, respond with a summary of changes made.";
+        let system_prompt = ctx
+            .config
+            .system_prompt
+            .as_deref()
+            .unwrap_or(default_prompt);
+
+        let react = ReactLoop::new(ctx.config.max_iterations).with_system_prompt(system_prompt);
 
         match react.run(messages, llm.as_ref(), tools.as_ref()).await {
             Ok(result) => {

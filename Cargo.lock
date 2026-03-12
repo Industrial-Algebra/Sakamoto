@@ -2000,6 +2000,7 @@ name = "sakamoto-executor"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "glob",
  "sakamoto-config",
  "sakamoto-context",
  "sakamoto-core",

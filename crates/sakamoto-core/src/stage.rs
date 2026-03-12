@@ -135,13 +135,10 @@ mod tests {
         StageConfig {
             name: "test".into(),
             kind: StageKind::Code,
-            llm_backend: None,
-            toolset: None,
             interaction: InteractionPolicy::Autonomous,
             max_iterations: 10,
             max_retries: 2,
-            timeout_secs: None,
-            command: None,
+            ..Default::default()
         }
     }
 

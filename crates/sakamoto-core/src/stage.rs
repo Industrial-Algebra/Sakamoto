@@ -11,6 +11,8 @@ use sakamoto_types::{
 };
 use std::sync::Arc;
 
+use crate::react::ReactObserver;
+
 // ---------------------------------------------------------------------------
 // Abstraction traits
 // ---------------------------------------------------------------------------
@@ -60,6 +62,9 @@ pub struct StageContext {
 
     /// Configuration for this specific stage.
     pub config: StageConfig,
+
+    /// Optional observer for streaming events from the ReAct loop.
+    pub observer: Option<Arc<dyn ReactObserver>>,
 }
 
 /// A pipeline stage that transforms a [`ContextBundle`].
@@ -163,6 +168,7 @@ mod tests {
             llm: Some(Arc::new(MockLlm)),
             tools: Some(Arc::new(MockTools)),
             config: test_stage_config(),
+            observer: None,
         };
 
         let stage: Box<dyn Stage> = Box::new(PassthroughStage);
@@ -177,6 +183,7 @@ mod tests {
             llm: None,
             tools: None,
             config: test_stage_config(),
+            observer: None,
         };
 
         let stage = PassthroughStage;

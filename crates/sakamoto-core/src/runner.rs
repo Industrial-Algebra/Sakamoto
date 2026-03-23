@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::dag::PipelineDag;
+use crate::react::ReactObserver;
 use crate::stage::{LlmClient, Stage, StageContext, ToolExecutor};
 
 /// Result of a pipeline run.
@@ -53,6 +54,7 @@ pub struct PipelineRunner {
     llm_clients: HashMap<String, Arc<dyn LlmClient>>,
     tool_executors: HashMap<String, Arc<dyn ToolExecutor>>,
     config: RunnerConfig,
+    observer: Option<Arc<dyn ReactObserver>>,
 }
 
 impl PipelineRunner {
@@ -65,7 +67,14 @@ impl PipelineRunner {
             llm_clients: HashMap::new(),
             tool_executors: HashMap::new(),
             config,
+            observer: None,
         }
+    }
+
+    /// Set the event observer for streaming progress.
+    pub fn with_observer(mut self, observer: Arc<dyn ReactObserver>) -> Self {
+        self.observer = Some(observer);
+        self
     }
 
     /// Register a stage implementation.
@@ -94,7 +103,7 @@ impl PipelineRunner {
         let flat_order: Vec<String> = levels.into_iter().flatten().collect();
 
         let mut context = initial_context;
-        let total_usage = TokenUsage::default();
+        let mut total_usage = TokenUsage::default();
         let mut stages_executed = Vec::new();
         let mut retries = 0;
 
@@ -121,6 +130,13 @@ impl PipelineRunner {
 
             match output {
                 StageOutput::Continue(new_context) => {
+                    // Propagate token usage from stage metadata
+                    if let Some(usage_val) = new_context.metadata.get("_token_usage")
+                        && let Ok(stage_usage) =
+                            serde_json::from_value::<TokenUsage>(usage_val.clone())
+                    {
+                        total_usage.accumulate(&stage_usage);
+                    }
                     context = new_context;
                     current_idx += 1;
                 }
@@ -192,7 +208,12 @@ impl PipelineRunner {
             .and_then(|name| self.tool_executors.get(name))
             .cloned();
 
-        StageContext { llm, tools, config }
+        StageContext {
+            llm,
+            tools,
+            config,
+            observer: self.observer.clone(),
+        }
     }
 }
 

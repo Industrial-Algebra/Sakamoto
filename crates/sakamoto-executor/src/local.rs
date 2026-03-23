@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use sakamoto_config::{PipelineConfig, ProjectConfig};
 use sakamoto_core::dag::PipelineDag;
+use sakamoto_core::react::ReactObserver;
 use sakamoto_core::runner::{PipelineRunner, RunResult, RunnerConfig};
 use sakamoto_core::stage::{LlmClient, Stage, ToolExecutor};
 use sakamoto_types::stage::StageConfig;
@@ -28,6 +29,8 @@ pub struct LocalExecutor {
     llm_clients: HashMap<String, Arc<dyn LlmClient>>,
     /// Tool executors keyed by toolset name.
     tool_executors: HashMap<String, Arc<dyn ToolExecutor>>,
+    /// Optional observer for streaming events.
+    observer: Option<Arc<dyn ReactObserver>>,
 }
 
 impl LocalExecutor {
@@ -38,7 +41,13 @@ impl LocalExecutor {
             working_dir,
             llm_clients: HashMap::new(),
             tool_executors: HashMap::new(),
+            observer: None,
         }
+    }
+
+    /// Set the event observer for streaming progress.
+    pub fn set_observer(&mut self, observer: Arc<dyn ReactObserver>) {
+        self.observer = Some(observer);
     }
 
     /// Register an LLM backend (already constructed by the caller).
@@ -167,13 +176,18 @@ impl LocalExecutor {
 
         let dag = PipelineDag::from_linear(&pipeline_config.stages)?;
 
-        let mut runner = PipelineRunner::new(
+        let runner = PipelineRunner::new(
             dag,
             RunnerConfig {
                 max_retries: pipeline_config.max_ci_rounds,
                 retry_from: Some("code".into()),
             },
         );
+        let mut runner = if let Some(obs) = &self.observer {
+            runner.with_observer(obs.clone())
+        } else {
+            runner
+        };
 
         // Register stages and their configs
         for stage_name in &pipeline_config.stages {

@@ -147,11 +147,15 @@ impl LlmBackend for AnthropicBackend {
                 reason: format!("failed to parse response: {e}"),
             })?;
 
-        let usage = TokenUsage {
+        let mut usage = TokenUsage {
             input_tokens: api_response.usage.input_tokens,
             output_tokens: api_response.usage.output_tokens,
             cost_usd: None,
         };
+
+        if let Some(pricing) = crate::pricing::lookup("anthropic", &self.model) {
+            usage.cost_usd = Some(crate::pricing::calculate_cost(&pricing, &usage));
+        }
 
         // Extract tool calls or final text
         let mut tool_calls = Vec::new();

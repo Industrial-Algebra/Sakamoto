@@ -185,6 +185,39 @@ impl TokenUsage {
     }
 }
 
+/// An observability event emitted during ReAct loop execution.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum StreamEvent {
+    /// An LLM response was received for this iteration.
+    LlmResponseReceived { iteration: usize },
+    /// A tool call is starting.
+    ToolCallStart { id: String, name: String },
+    /// A tool call has completed.
+    ToolCallDone {
+        id: String,
+        output: String,
+        is_error: bool,
+    },
+    /// Token usage for a single LLM call.
+    Usage(TokenUsage),
+    /// An iteration of the ReAct loop has completed.
+    IterationDone { iteration: usize },
+    /// The ReAct loop has finished.
+    Done {
+        iterations: usize,
+        total_usage: TokenUsage,
+    },
+}
+
+/// Pricing information for a model (cost per million tokens).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ModelPricing {
+    /// Cost per million input tokens in USD.
+    pub input_per_mtok: f64,
+    /// Cost per million output tokens in USD.
+    pub output_per_mtok: f64,
+}
+
 /// Metadata about a model's capabilities.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ModelInfo {
@@ -356,5 +389,52 @@ mod tests {
             "\"assistant\""
         );
         assert_eq!(serde_json::to_string(&Role::Tool).unwrap(), "\"tool\"");
+    }
+
+    #[test]
+    fn stream_event_roundtrips_json() {
+        let event = StreamEvent::ToolCallStart {
+            id: "tc_1".into(),
+            name: "shell".into(),
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        let parsed: StreamEvent = serde_json::from_str(&json).unwrap();
+        assert!(matches!(parsed, StreamEvent::ToolCallStart { .. }));
+    }
+
+    #[test]
+    fn stream_event_done_roundtrips() {
+        let event = StreamEvent::Done {
+            iterations: 3,
+            total_usage: TokenUsage {
+                input_tokens: 500,
+                output_tokens: 200,
+                cost_usd: Some(0.01),
+            },
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        let parsed: StreamEvent = serde_json::from_str(&json).unwrap();
+        if let StreamEvent::Done {
+            iterations,
+            total_usage,
+        } = parsed
+        {
+            assert_eq!(iterations, 3);
+            assert_eq!(total_usage.input_tokens, 500);
+        } else {
+            panic!("expected Done variant");
+        }
+    }
+
+    #[test]
+    fn model_pricing_roundtrips_json() {
+        let pricing = ModelPricing {
+            input_per_mtok: 3.0,
+            output_per_mtok: 15.0,
+        };
+        let json = serde_json::to_string(&pricing).unwrap();
+        let parsed: ModelPricing = serde_json::from_str(&json).unwrap();
+        assert!((parsed.input_per_mtok - 3.0).abs() < f64::EPSILON);
+        assert!((parsed.output_per_mtok - 15.0).abs() < f64::EPSILON);
     }
 }

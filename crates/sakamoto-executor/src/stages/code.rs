@@ -66,13 +66,20 @@ impl Stage for CodeStage {
             .as_deref()
             .unwrap_or(default_prompt);
 
-        let react = ReactLoop::new(ctx.config.max_iterations).with_system_prompt(system_prompt);
+        let mut react = ReactLoop::new(ctx.config.max_iterations).with_system_prompt(system_prompt);
+
+        if let Some(observer) = &ctx.observer {
+            react = react.with_observer(observer.clone());
+        }
 
         match react.run(messages, llm.as_ref(), tools.as_ref()).await {
             Ok(result) => {
                 context
                     .metadata
                     .insert("code_result".into(), result.final_text.into());
+                if let Ok(usage_json) = serde_json::to_value(&result.token_usage) {
+                    context.metadata.insert("_token_usage".into(), usage_json);
+                }
                 StageOutput::Continue(context)
             }
             Err(e) => StageOutput::Fail(e),
@@ -134,6 +141,7 @@ mod tests {
                 max_iterations: 5,
                 ..Default::default()
             },
+            observer: None,
         };
 
         let bundle = ContextBundle::from_task("fix clippy warnings");
@@ -149,6 +157,7 @@ mod tests {
             llm: None,
             tools: Some(Arc::new(MockTools)),
             config: StageConfig::default(),
+            observer: None,
         };
 
         let bundle = ContextBundle::from_task("task");
@@ -163,6 +172,7 @@ mod tests {
             llm: Some(Arc::new(MockLlm)),
             tools: None,
             config: StageConfig::default(),
+            observer: None,
         };
 
         let bundle = ContextBundle::from_task("task");

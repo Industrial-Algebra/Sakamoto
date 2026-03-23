@@ -5,6 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, bail};
+use sakamoto_core::react::ReactObserver;
+use sakamoto_types::llm::StreamEvent;
 
 use sakamoto_config::{LlmConfig, McpTransport, ProjectConfig};
 use sakamoto_executor::local::LocalExecutor;
@@ -17,6 +19,41 @@ use sakamoto_tools::builtin::shell::ShellTool;
 use sakamoto_tools::mcp::{McpConnection, McpTool};
 use sakamoto_tools::router::ToolRouter;
 use sakamoto_tools::tool::Tool;
+
+/// CLI observer that prints streaming events to stdout.
+struct CliObserver;
+
+impl ReactObserver for CliObserver {
+    fn on_event(&self, event: StreamEvent) {
+        match event {
+            StreamEvent::ToolCallStart { name, .. } => {
+                eprintln!("  -> calling {name}...");
+            }
+            StreamEvent::ToolCallDone { id, is_error, .. } => {
+                if is_error {
+                    eprintln!("  <- {id} (error)");
+                }
+            }
+            StreamEvent::IterationDone { iteration } => {
+                eprintln!("  [iteration {} done]", iteration + 1);
+            }
+            StreamEvent::Done {
+                iterations,
+                total_usage,
+            } => {
+                eprint!("  [{iterations} iterations");
+                if total_usage.input_tokens > 0 || total_usage.output_tokens > 0 {
+                    eprint!(
+                        ", {} in / {} out tokens",
+                        total_usage.input_tokens, total_usage.output_tokens
+                    );
+                }
+                eprintln!("]");
+            }
+            _ => {}
+        }
+    }
+}
 
 pub async fn execute(task: &str, pipeline: &str) -> anyhow::Result<()> {
     let config_path = Path::new("sakamoto.toml");
@@ -35,6 +72,7 @@ pub async fn execute(task: &str, pipeline: &str) -> anyhow::Result<()> {
     );
 
     let mut executor = LocalExecutor::new(config.clone(), working_dir.clone());
+    executor.set_observer(Arc::new(CliObserver));
 
     // Register LLM backends
     for (name, llm_config) in &config.llm {
@@ -101,11 +139,24 @@ pub async fn execute(task: &str, pipeline: &str) -> anyhow::Result<()> {
                     }
                 }
                 McpTransport::Http => {
-                    tracing::warn!(
-                        server = %server_name,
-                        "HTTP MCP transport not yet implemented — skipping"
-                    );
-                    continue;
+                    let Some(url) = &server_config.url else {
+                        tracing::warn!(
+                            server = %server_name,
+                            "HTTP MCP server missing 'url' — skipping"
+                        );
+                        continue;
+                    };
+                    match McpConnection::connect_http(server_name, url).await {
+                        Ok(conn) => Arc::new(conn),
+                        Err(e) => {
+                            tracing::warn!(
+                                server = %server_name,
+                                error = %e,
+                                "failed to connect to HTTP MCP server — skipping"
+                            );
+                            continue;
+                        }
+                    }
                 }
             };
 
@@ -139,10 +190,17 @@ pub async fn execute(task: &str, pipeline: &str) -> anyhow::Result<()> {
     }
     let usage = &result.token_usage;
     if usage.input_tokens > 0 || usage.output_tokens > 0 {
-        println!(
-            "Tokens: {} in / {} out",
-            usage.input_tokens, usage.output_tokens
-        );
+        if let Some(cost) = usage.cost_usd {
+            println!(
+                "Tokens: {} in / {} out (${:.4})",
+                usage.input_tokens, usage.output_tokens, cost
+            );
+        } else {
+            println!(
+                "Tokens: {} in / {} out",
+                usage.input_tokens, usage.output_tokens
+            );
+        }
     }
 
     if !result.context.diagnostics.is_empty() {

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context pre-hydration stage.
 //!
 //! Parses the task description for references, then resolves them

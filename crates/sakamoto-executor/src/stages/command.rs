@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Command-based stages (lint, test, commit, pr).
 //!
 //! These stages execute shell commands and interpret the results.

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! The [`Executor`] trait — abstraction over execution environments.
 
 use sakamoto_core::runner::RunResult;

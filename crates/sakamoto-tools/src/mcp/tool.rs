@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! MCP tool proxy — wraps an MCP server tool as a Sakamoto [`Tool`].
 //!
 //! Each [`McpTool`] holds a reference to its parent [`McpConnection`] and

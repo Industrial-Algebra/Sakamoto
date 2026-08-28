@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Adapters that bridge native crate implementations into
 //! `sakamoto-core`'s abstraction traits.
 

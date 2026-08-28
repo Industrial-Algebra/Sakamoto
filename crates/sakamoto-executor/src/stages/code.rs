@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Code stage — ReAct loop wrapper.
 //!
 //! Runs a ReAct loop using the stage's LLM client and tool executor,

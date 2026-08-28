@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Pipeline DAG — topological ordering and parallel level computation.
 //!
 //! Wraps a simple adjacency-list graph that tracks stage dependencies.

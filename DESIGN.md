@@ -18,7 +18,7 @@ for individual developers and teams.
    free-form chat. Deterministic structure with LLM filling in the gaps.
 2. **Composable**: Pipelines can contain sub-pipelines. Stages, tools, and backends are
    mix-and-match.
-3. **Type-driven**: Phantom types enforce valid state transitions at compile time.
+3. **Type-driven**: Algebraic types enforce valid state transitions at compile time.
    Algebraic patterns throughout.
 4. **MCP-native**: Tools are first-class via Model Context Protocol. Curated toolsets
    scope tool availability per stage.
@@ -41,7 +41,7 @@ for individual developers and teams.
 │(toml)│(hydration)│(backends) │(MCP+built)│(local/nix)  │
 ├──────┴──────────┴───────────┴───────────┴─────────────┤
 │                   sakamoto-types                        │
-│       (Phantom states, core types, errors)              │
+│       (Type‑driven core types, errors)              │
 └────────────────────────────────────────────────────────┘
 
         ┌──────────────────────────┐
@@ -73,7 +73,7 @@ The GUI is a pipeline **composer** (define and visualize pipelines), not a pipel
 
 ## Pipeline Model
 
-### Phantom-Typed State Machine
+### Type‑Driven State Machine
 
 ```rust
 // States
@@ -87,7 +87,7 @@ struct Emitted;
 struct Pipeline<S> {
     config: PipelineConfig,
     context: ContextBundle,
-    _state: PhantomData<S>,
+    _state: std::marker::PhantomData<S>,
 }
 
 // Only valid transitions compile

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Pipeline runner — executes a DAG of stages with retry support.
 //!
 //! The runner walks the DAG level by level, executing stages within each

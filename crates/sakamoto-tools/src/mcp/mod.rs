@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! MCP client integration for Sakamoto.
 //!
 //! Provides [`McpConnection`] for connecting to MCP servers (via stdio or HTTP

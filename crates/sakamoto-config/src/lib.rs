@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Configuration parsing for Sakamoto.
 //!
 //! Reads `sakamoto.toml` project configuration and user-level defaults

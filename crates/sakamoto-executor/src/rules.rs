@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Rule file loading and directory scoping.
 //!
 //! Loads Markdown rule files from `.sakamoto/rules/` and merges them into

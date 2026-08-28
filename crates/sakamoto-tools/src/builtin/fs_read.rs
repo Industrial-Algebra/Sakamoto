@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Structured file reading tool.
 //!
 //! Provides the LLM with a file reading tool that supports line ranges,

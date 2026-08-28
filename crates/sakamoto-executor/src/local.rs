@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Local executor — runs pipelines in the current working directory.
 
 use std::collections::HashMap;

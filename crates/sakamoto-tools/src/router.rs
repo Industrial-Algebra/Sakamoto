@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Tool router — registry and dispatch for available tools.
 //!
 //! The [`ToolRouter`] holds a set of [`Tool`] implementations and provides

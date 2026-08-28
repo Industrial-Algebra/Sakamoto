@@ -9,6 +9,8 @@ members = [
     "crates/sakamoto-executor",
     "crates/sakamoto-cli",
     # "crates/sakamoto-gui",  # Leptos + Mingot, enabled when Phase 7 lands
+    "crates/sakamoto-blocks",
+
 ]
 resolver = "3"
 

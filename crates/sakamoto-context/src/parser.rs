@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context reference parsers — pure functions that extract
 //! [`ContextRef`] variants from task description text.
 //!

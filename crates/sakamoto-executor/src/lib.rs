@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Pluggable execution environments for Sakamoto.
 //!
 //! This crate provides the [`Executor`] trait and concrete implementations

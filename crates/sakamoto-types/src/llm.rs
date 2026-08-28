@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! LLM conversation types: messages, tool calls, and tool definitions.
 //!
 //! These types are backend-agnostic — they represent the common structure

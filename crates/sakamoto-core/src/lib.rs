@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Pipeline engine, DAG runner, and stage orchestration for Sakamoto.
 //!
 //! This crate defines the core execution model:

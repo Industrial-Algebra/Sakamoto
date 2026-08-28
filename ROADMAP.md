@@ -59,11 +59,11 @@ Rust project and open a PR.
   - [x] GitHub issue/PR URL parser
   - [x] Generic URL parser
   - [x] Symbol name parser (function/type references)
-- [ ] `ContextFetcher` trait — resolve `ContextRef` to content
+- [x] `ContextFetcher` trait — resolve `ContextRef` to content
   - [ ] Filesystem fetcher (read files, directory listings)
   - [ ] GitHub fetcher (via `gh` CLI — issues, PRs, comments)
   - [ ] HTTP fetcher (generic URL content)
-- [ ] `ContextEngine` — orchestrate parsing and fetching into a `ContextBundle`
+- [x] `ContextEngine` — orchestrate parsing and fetching into a `ContextBundle`
 - [ ] Pre-hydration: run fetchers before LLM loop starts
 
 #### sakamoto-core

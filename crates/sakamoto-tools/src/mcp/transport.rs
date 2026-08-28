@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Stdio transport over a child process.
 //!
 //! pmcp's built-in [`StdioTransport`](pmcp::StdioTransport) uses the current

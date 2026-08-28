@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! ReAct loop — iterative LLM + tool-use execution engine.
 //!
 //! The ReAct (Reasoning + Acting) loop is the core of the coding agent.

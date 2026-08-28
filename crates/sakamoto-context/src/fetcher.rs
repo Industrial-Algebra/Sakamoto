@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context fetcher trait and implementations.
 //!
 //! Fetchers resolve [`ContextRef`]s into [`ContextEntry`]s by reading

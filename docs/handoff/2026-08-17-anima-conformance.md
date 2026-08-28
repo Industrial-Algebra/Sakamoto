@@ -41,7 +41,7 @@ in the core.**
   clippy lints (Dominic and Ijima both hit `manual_noop_waker`/`needless_borrow`
   class changes in August). Run the full gate: `cargo fmt`, `clippy --all-features
   --all-targets -D warnings`, `test --all-features`, `cargo doc`.
-- Dependency refresh (rmcp/MCP SDK, ratatui, provider SDKs) — bit-rot risk was
+- Dependency refresh (pmcp/MCP SDK, ratatui, provider SDKs) — bit-rot risk was
   flagged in two consecutive Anima pulses.
 - CI state unknown after 158 days — verify workflows still green.
 

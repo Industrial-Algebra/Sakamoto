@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! The core [`Tool`] trait for Sakamoto tools.
 //!
 //! All tools — built-in and MCP-proxied — implement this trait,

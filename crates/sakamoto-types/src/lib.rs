@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Core types, phantom states, and algebraic patterns for Sakamoto.
 //!
 //! This crate defines the foundational types shared across all Sakamoto
@@ -14,15 +17,11 @@
 pub mod context;
 pub mod error;
 pub mod llm;
-pub mod pipeline;
+
 pub mod stage;
 
 // Re-export the most-used types at crate root for ergonomics.
 pub use context::{ContextBundle, ContextEntry, ContextRef};
 pub use error::{Diagnostic, Result, SakamotoError, Severity};
 pub use llm::{LlmResponse, Message, ModelInfo, Role, TokenUsage, ToolCall, ToolDef, ToolResult};
-pub use pipeline::{
-    Emitted, Executed, Hydrated, Pending, Pipeline, PipelineOutput, PipelineResult, PipelineState,
-    Planned, Validated,
-};
 pub use stage::{InteractionPolicy, StageConfig, StageKind, StageOutput};

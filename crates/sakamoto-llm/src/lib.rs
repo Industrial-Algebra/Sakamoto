@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! LLM backend trait and provider implementations for Sakamoto.
 //!
 //! Each LLM provider implements the [`LlmBackend`] trait, providing

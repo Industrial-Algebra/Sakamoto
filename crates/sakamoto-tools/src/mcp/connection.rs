@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! MCP connection lifecycle management.
 //!
 //! Manages the full lifecycle of an MCP server connection: spawn transport,

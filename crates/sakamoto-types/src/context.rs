@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Context bundle and reference types for pre-hydration.
 //!
 //! The context engine parses task descriptions for references (file paths,

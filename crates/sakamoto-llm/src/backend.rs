@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! The core [`LlmBackend`] trait.
 
 use sakamoto_types::SakamotoError;

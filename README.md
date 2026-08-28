@@ -78,7 +78,7 @@ User-level defaults can be set in `~/.config/sakamoto/config.toml` — project c
 
 | Crate | Description | Wasm-safe |
 |-------|-------------|-----------|
-| [`sakamoto-types`](crates/sakamoto-types/) | Phantom-typed pipeline states, `StageOutput` algebra, LLM/tool types, errors | Yes |
+| [`sakamoto-types`](crates/sakamoto-types/) | Type-driven: the `StageOutput` algebra (Continue/Retry/Fail/Fork) is the load-bearing contract; pipeline progression is runner-enforced. | Yes |
 | [`sakamoto-core`](crates/sakamoto-core/) | `Stage` trait, `ReactLoop`, `PipelineDag`, `PipelineRunner` | Yes |
 | [`sakamoto-config`](crates/sakamoto-config/) | `sakamoto.toml` parsing, user config merging | Yes |
 | [`sakamoto-llm`](crates/sakamoto-llm/) | `LlmBackend` trait, Anthropic and OpenAI-compatible providers | No |

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Shell command execution tool.
 //!
 //! This tool runs a shell command in a specified working directory and

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! Stage trait and orchestration abstractions.
 //!
 //! These traits define the interfaces that `sakamoto-core` programs against.

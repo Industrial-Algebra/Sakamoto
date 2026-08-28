@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 //! `sakamoto check` — validate configuration and report status.
 
 use std::path::Path;

@@ -177,7 +177,7 @@ impl LlmBackend for OpenAiCompatBackend {
                 reason: format!("failed to parse response: {e}"),
             })?;
 
-        let usage = api_response
+        let mut usage = api_response
             .usage
             .map(|u| TokenUsage {
                 input_tokens: u.prompt_tokens,
@@ -185,6 +185,10 @@ impl LlmBackend for OpenAiCompatBackend {
                 cost_usd: None,
             })
             .unwrap_or_default();
+
+        if let Some(pricing) = crate::pricing::lookup(&self.info.provider, &self.model) {
+            usage.cost_usd = Some(crate::pricing::calculate_cost(&pricing, &usage));
+        }
 
         let choice =
             api_response

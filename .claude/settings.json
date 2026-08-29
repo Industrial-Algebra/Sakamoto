@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ia-mcp": {
+      "command": "/home/elliotthall/working/industrial-algebra/IA-MCP/target/release/ia-mcp",
+      "args": [
+        "--manifest", "/home/elliotthall/working/industrial-algebra/IA-MCP/manifests/amari.toml",
+        "--manifest", "/home/elliotthall/working/industrial-algebra/IA-MCP/manifests/cliffy.toml",
+        "--manifest", "/home/elliotthall/working/industrial-algebra/IA-MCP/manifests/mingot.toml",
+        "--manifest", "/home/elliotthall/working/industrial-algebra/IA-MCP/manifests/karpal.toml",
+        "--manifest", "/home/elliotthall/working/industrial-algebra/IA-MCP/manifests/orlando.toml"
+      ]
+    }
+  }
+}

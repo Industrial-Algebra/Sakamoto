@@ -7,6 +7,7 @@
 //! a uniform interface for conversation completion with tool use.
 
 mod backend;
+pub mod pricing;
 pub mod providers;
 
 pub use backend::LlmBackend;

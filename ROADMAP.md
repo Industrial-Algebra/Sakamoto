@@ -98,9 +98,9 @@ Rust project and open a PR.
 - [x] Git hooks (pre-commit: fmt, clippy, test)
 - [x] Dependabot
 - [x] Gitflow branching (main ← develop ← feature/*)
-- [ ] Nix flake (dev shell + build)
+- [x] Nix flake (dev shell + build)
 - [x] CLAUDE.md for agent-assisted development
-- [ ] `.sakamoto/rules` example rule files
+- [x] `.sakamoto/rules` example rule files
 
 ### First End-to-End Test Case
 

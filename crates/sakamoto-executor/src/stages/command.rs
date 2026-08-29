@@ -148,6 +148,7 @@ mod tests {
                 command: Some(cmd.into()),
                 ..Default::default()
             },
+            observer: None,
         }
     }
 
@@ -185,6 +186,7 @@ mod tests {
             llm: None,
             tools: None,
             config: StageConfig::default(),
+            observer: None,
         };
         let bundle = ContextBundle::from_task("test");
         let output = stage.execute(bundle, &ctx).await;

@@ -51,6 +51,7 @@ mod tests {
             llm: None,
             tools: None,
             config: StageConfig::default(),
+            observer: None,
         }
     }
 

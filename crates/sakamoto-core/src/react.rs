@@ -8,12 +8,26 @@
 //! appends the results, and repeats until the LLM produces a final answer
 //! or the iteration limit is reached.
 
+use std::sync::Arc;
+
 use sakamoto_types::{
     SakamotoError,
-    llm::{ContentBlock, LlmResponse, Message, MessageContent, Role, TokenUsage, ToolDef},
+    llm::{
+        ContentBlock, LlmResponse, Message, MessageContent, Role, StreamEvent, TokenUsage, ToolDef,
+    },
 };
 
 use crate::stage::{LlmClient, ToolExecutor};
+
+/// Observer for ReAct loop events.
+///
+/// Implement this trait to receive real-time progress updates from the
+/// ReAct loop. The CLI uses this for streaming output; tests use it
+/// to verify event sequences.
+pub trait ReactObserver: Send + Sync {
+    /// Called when an event occurs during the ReAct loop.
+    fn on_event(&self, event: StreamEvent);
+}
 
 /// Configuration for a ReAct loop execution.
 pub struct ReactLoop {
@@ -21,6 +35,8 @@ pub struct ReactLoop {
     pub max_iterations: usize,
     /// Optional system prompt prepended to the conversation.
     pub system_prompt: Option<String>,
+    /// Optional observer for streaming events.
+    observer: Option<Arc<dyn ReactObserver>>,
 }
 
 /// The result of a completed ReAct loop.
@@ -42,6 +58,7 @@ impl ReactLoop {
         Self {
             max_iterations,
             system_prompt: None,
+            observer: None,
         }
     }
 
@@ -49,6 +66,19 @@ impl ReactLoop {
     pub fn with_system_prompt(mut self, prompt: impl Into<String>) -> Self {
         self.system_prompt = Some(prompt.into());
         self
+    }
+
+    /// Set the event observer for streaming progress.
+    pub fn with_observer(mut self, observer: Arc<dyn ReactObserver>) -> Self {
+        self.observer = Some(observer);
+        self
+    }
+
+    /// Emit an event to the observer, if one is set.
+    fn emit(&self, event: StreamEvent) {
+        if let Some(obs) = &self.observer {
+            obs.on_event(event);
+        }
     }
 
     /// Run the ReAct loop to completion.
@@ -71,8 +101,15 @@ impl ReactLoop {
                 .await?;
             total_usage.accumulate(&usage);
 
+            self.emit(StreamEvent::LlmResponseReceived { iteration });
+            self.emit(StreamEvent::Usage(usage));
+
             match response {
                 LlmResponse::Final(text) => {
+                    self.emit(StreamEvent::Done {
+                        iterations: iteration + 1,
+                        total_usage: total_usage.clone(),
+                    });
                     return Ok(ReactResult {
                         final_text: text,
                         messages,
@@ -99,8 +136,18 @@ impl ReactLoop {
                     // Execute each tool and collect results
                     let mut result_blocks = Vec::new();
                     for call in &calls {
+                        self.emit(StreamEvent::ToolCallStart {
+                            id: call.id.clone(),
+                            name: call.name.clone(),
+                        });
+
                         match tools.execute_tool(&call.name, call.input.clone()).await {
                             Ok(output) => {
+                                self.emit(StreamEvent::ToolCallDone {
+                                    id: call.id.clone(),
+                                    output: output.clone(),
+                                    is_error: false,
+                                });
                                 result_blocks.push(ContentBlock::ToolResult {
                                     tool_use_id: call.id.clone(),
                                     content: output,
@@ -108,9 +155,15 @@ impl ReactLoop {
                                 });
                             }
                             Err(e) => {
+                                let err_str = e.to_string();
+                                self.emit(StreamEvent::ToolCallDone {
+                                    id: call.id.clone(),
+                                    output: err_str.clone(),
+                                    is_error: true,
+                                });
                                 result_blocks.push(ContentBlock::ToolResult {
                                     tool_use_id: call.id.clone(),
-                                    content: e.to_string(),
+                                    content: err_str,
                                     is_error: true,
                                 });
                             }
@@ -121,6 +174,8 @@ impl ReactLoop {
                         role: Role::User,
                         content: MessageContent::Blocks(result_blocks),
                     });
+
+                    self.emit(StreamEvent::IterationDone { iteration });
                 }
             }
         }
@@ -500,5 +555,97 @@ mod tests {
         let defs = collect_tool_defs(&tools);
         assert_eq!(defs.len(), 1);
         assert_eq!(defs[0].name, "echo");
+    }
+
+    // -- Observer tests --
+
+    struct CollectingObserver {
+        events: std::sync::Mutex<Vec<StreamEvent>>,
+    }
+
+    impl CollectingObserver {
+        fn new() -> Self {
+            Self {
+                events: std::sync::Mutex::new(Vec::new()),
+            }
+        }
+
+        fn events(&self) -> Vec<StreamEvent> {
+            self.events.lock().unwrap().clone()
+        }
+    }
+
+    impl ReactObserver for CollectingObserver {
+        fn on_event(&self, event: StreamEvent) {
+            self.events.lock().unwrap().push(event);
+        }
+    }
+
+    #[tokio::test]
+    async fn observer_receives_events_for_immediate_final() {
+        let observer = Arc::new(CollectingObserver::new());
+        let react = ReactLoop::new(10).with_observer(observer.clone());
+        let llm = ImmediateLlm {
+            response_text: "answer".into(),
+        };
+        let tools = MockTools::new();
+
+        react
+            .run(vec![user_message("question")], &llm, &tools)
+            .await
+            .unwrap();
+
+        let events = observer.events();
+        // Should have: LlmResponseReceived, Usage, Done
+        assert_eq!(events.len(), 3);
+        assert!(matches!(
+            events[0],
+            StreamEvent::LlmResponseReceived { iteration: 0 }
+        ));
+        assert!(matches!(events[1], StreamEvent::Usage(_)));
+        assert!(matches!(events[2], StreamEvent::Done { iterations: 1, .. }));
+    }
+
+    #[tokio::test]
+    async fn observer_receives_tool_events() {
+        let observer = Arc::new(CollectingObserver::new());
+        let react = ReactLoop::new(10).with_observer(observer.clone());
+        let llm = ToolThenFinalLlm {
+            call_count: AtomicUsize::new(0),
+        };
+        let tools = MockTools::new();
+
+        react
+            .run(vec![user_message("task")], &llm, &tools)
+            .await
+            .unwrap();
+
+        let events = observer.events();
+        // Iteration 0: LlmResponseReceived, Usage, ToolCallStart, ToolCallDone, IterationDone
+        // Iteration 1: LlmResponseReceived, Usage, Done
+        assert_eq!(events.len(), 8);
+        assert!(matches!(events[2], StreamEvent::ToolCallStart { .. }));
+        assert!(matches!(events[3], StreamEvent::ToolCallDone { .. }));
+        assert!(matches!(
+            events[4],
+            StreamEvent::IterationDone { iteration: 0 }
+        ));
+        assert!(matches!(events[7], StreamEvent::Done { iterations: 2, .. }));
+    }
+
+    #[tokio::test]
+    async fn no_observer_no_panic() {
+        // Verify that running without an observer works fine
+        let react = ReactLoop::new(10);
+        let llm = ToolThenFinalLlm {
+            call_count: AtomicUsize::new(0),
+        };
+        let tools = MockTools::new();
+
+        let result = react
+            .run(vec![user_message("task")], &llm, &tools)
+            .await
+            .unwrap();
+        assert_eq!(result.final_text, "done after tool");
     }
 }
